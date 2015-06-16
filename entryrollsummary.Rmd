@@ -1,0 +1,62 @@
+---
+title: "Entry Roll Summary"
+author: "jsramos"
+date: "March 4, 2015"
+output: html_document
+---
+```{r echo=FALSE, setOptions, message=FALSE}
+suppressPackageStartupMessages(library(googleVis))
+suppressPackageStartupMessages(
+  library(googleVis)
+)
+op <- options(gvis.plot.tag='chart')
+```
+
+```{r echo = FALSE, warning=FALSE, message=FALSE, results='asis', comment = NA, tidy = F}
+# Dependencias
+library(tidyr)
+library(dplyr)
+library(stringr)
+library(rCharts)
+# Cargar datos
+empdata <- read.csv("empdata2.csv", header = T)
+empbase <- read.csv("asistencia.csv", header = T)
+
+# Limpiar datos
+empdata$Delegacion...Municipio[agrep("ALVARO", empdata$Delegacion...Municipio)] <- "ALVAROOBREGON"
+empdata$Delegacion...Municipio[agrep("ATIZAPAN", empdata$Delegacion...Municipio)] <- "ATIZAPAN"
+empdata$Delegacion...Municipio[agrep("ZCAPO", empdata$Delegacion...Municipio)] <- "AZCAPOTZALCO"
+empdata$Delegacion...Municipio[agrep("NEZAHUAL", empdata$Delegacion...Municipio)] <- "NEZAHUALCOYOTL"
+empdata$Delegacion...Municipio[agrep("CUAUTITLAN", empdata$Delegacion...Municipio)] <- "CUAUTITLAN"
+empdata$Delegacion...Municipio[agrep("IZCALLI", empdata$Delegacion...Municipio)] <- "CUAUTITLAN"
+empdata$Delegacion...Municipio[grep("EMOC", empdata$Delegacion...Municipio)] <- "CUAUHTEMOC"
+empdata$Delegacion...Municipio[agrep("ECATEPEC", empdata$Delegacion...Municipio)] <- "ECATEPEC"
+empdata$Delegacion...Municipio[agrep("METEPEC", empdata$Delegacion...Municipio)] <- "METEPEC"
+empdata$Delegacion...Municipio[agrep("GUSTAVO", empdata$Delegacion...Municipio)] <- "GUSTAVOAMADERO"
+empdata$Delegacion...Municipio[agrep("PALAPA", empdata$Delegacion...Municipio)] <- "IZTAPALAPA"
+empdata$Delegacion...Municipio[agrep("PANTLA", empdata$Delegacion...Municipio)] <- "TLALNEPANTLA"
+empdata$Delegacion...Municipio[agrep("PACHUCA", empdata$Delegacion...Municipio)] <- "PACHUCA"
+empdata$Delegacion...Municipio[agrep("CARRANZA", empdata$Delegacion...Municipio)] <- "VENUSTIANOCARRANZA"
+empdata$Delegacion...Municipio[agrep("D.F.", empdata$Delegacion...Municipio)] <- "DISTRITOFEDERAL"
+empdata$Delegacion...Municipio[agrep("XOCHIMILCO", empdata$Delegacion...Municipio)] <- "XOCHIMILCO"
+empdata$Delegacion...Municipio[agrep("AGUSTIN", empdata$Delegacion...Municipio)] <- "SANAGUSTIN"
+
+empbase$Trabajador <- str_trim(empbase$Trabajador, "both")
+emproll <- merge(empbase, empdata, by="Trabajador")
+btroll <- emproll[emproll$Tipo.Registro == "E",]
+btroll$horaEntrada <- as.POSIXct(as.character(btroll$Hora.Reg), format="%I:%M", )
+btroll <- empentryroll[order(btroll[,9], btroll[,5]), ]
+btlog <- btroll[substr(btroll$Trabajador, 1, 2) == "BT", c(2,9)]
+btbox <- summarise(group_by(btlog, Fecha.Reg), 
+                   low=sapply(strsplit(substr(as.character(min(horaEntrada)), 12, 19), ":"), function(x) {x <- as.numeric(x); x[1] + (x[2]/60) + (x[3]/3600)}),
+                   open=sapply(strsplit(substr(as.character(min(horaEntrada)), 12, 19), ":"), function(x) {x <- as.numeric(x); x[1] + (x[2]/60) + (x[3]/3600)}),
+                   high=sapply(strsplit(substr(as.character(max(horaEntrada)), 12, 19), ":"), function(x) {x <- as.numeric(x); x[1] + (x[2]/60) + (x[3]/3600)}),
+                   close=sapply(strsplit(substr(as.character(max(horaEntrada)), 12, 19), ":"), function(x) {x <- as.numeric(x); x[1] + (x[2]/60) + (x[3]/3600)}),
+                   volume=n())
+btbox$Fecha.Reg <- as.Date(btbox$Fecha.Reg, format="%m/%d/%y")
+plot(gvisCandlestickChart(btbox, xvar="Fecha.Reg", open="open", high="high", low="low", close="close", options=list(title="Horas de entrada máximos y mínimos de Bursatec en Diciembre 2014 (horas en decimal)", height="600", legend="none")))
+#dates <- btbox$Fecha.Reg
+#values <- btbox[, -1]
+#btts <- as.xts(values, order.by = as.Date(dates, "%m/%d/%y"))
+
+```
